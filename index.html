@@ -1,0 +1,2249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Focus.ai - AI驱动的专注音乐体验</title>
+    <!-- Tailwind CSS v3 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <!-- GSAP for animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <!-- AOS for scroll animations -->
+    <link href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0f172a',
+                        secondary: '#1e293b',
+                        accent: '#3b82f6',
+                        highlight: '#60a5fa',
+                        dark: '#020617',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'wave': 'wave 8s linear infinite',
+                    },
+                    keyframes: {
+                        wave: {
+                            '0%': { transform: 'translateX(0)' },
+                            '100%': { transform: 'translateX(-100%)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            }
+            .glass {
+                background: rgba(255, 255, 255, 0.1);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            .glass-dark {
+                background: rgba(15, 23, 42, 0.7);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.05);
+            }
+            .gradient-border {
+                position: relative;
+                border-radius: 0.75rem;
+                z-index: 0;
+            }
+            .gradient-border::before {
+                content: '';
+                position: absolute;
+                top: -2px;
+                left: -2px;
+                right: -2px;
+                bottom: -2px;
+                background: linear-gradient(45deg, #3b82f6, #60a5fa);
+                border-radius: 0.875rem;
+                z-index: -1;
+            }
+            .scrollbar-hide::-webkit-scrollbar {
+                display: none;
+            }
+            .scrollbar-hide {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
+            .audio-wave {
+                position: relative;
+                height: 60px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .audio-wave span {
+                display: block;
+                width: 3px;
+                margin: 0 2px;
+                background-color: #3b82f6;
+                animation: wave 1.2s linear infinite;
+            }
+            @keyframes wave {
+                0% {
+                    height: 10px;
+                }
+                50% {
+                    height: 40px;
+                }
+                100% {
+                    height: 10px;
+                }
+            }
+            .audio-wave span:nth-child(2) {
+                animation-delay: 0.1s;
+            }
+            .audio-wave span:nth-child(3) {
+                animation-delay: 0.2s;
+            }
+            .audio-wave span:nth-child(4) {
+                animation-delay: 0.3s;
+            }
+            .audio-wave span:nth-child(5) {
+                animation-delay: 0.4s;
+            }
+        }
+    </style>
+</head>
+<body class="bg-primary text-white min-h-screen flex flex-col">
+    <!-- Background -->
+    <div class="fixed inset-0 z-0 opacity-20">
+        <img src="https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/d4e17d4d6aa242e48cf8eb0eb6b5a57a~tplv-a9rns2rl98-image.image?rcl=20251130001341BFD38C4D619EAA0EA6EE&rk3s=8e244e95&rrcfp=f06b921b&x-expires=1767024837&x-signature=OKRe8tdd9lfaLvvSp7hWZMnAS%2F8%3D" 
+             alt="Background" class="w-full h-full object-cover">
+    </div>
+    
+    <!-- Navigation -->
+    <nav class="glass-dark sticky top-0 z-50 px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center space-x-2">
+            <div class="w-10 h-10 rounded-full bg-gradient-to-r from-accent to-highlight flex items-center justify-center">
+                <i class="fa fa-music text-white text-xl"></i>
+            </div>
+            <h1 class="text-2xl font-bold bg-gradient-to-r from-accent to-highlight text-transparent bg-clip-text">Focus.ai</h1>
+        </div>
+        
+        <div class="hidden md:flex items-center space-x-8">
+            <a href="#" class="nav-link" data-page="home">首页</a>
+            <a href="#" class="nav-link" data-page="history">播放历史</a>
+            <a href="#" class="nav-link" data-page="feedback">反馈</a>
+            <a href="#" class="nav-link" data-page="profile">个人中心</a>
+        </div>
+        
+        <div class="flex items-center space-x-4">
+            <button id="login-btn" class="px-6 py-3 rounded-full bg-accent hover:bg-highlight transition-all duration-300 hidden transform hover:scale-105">
+                <i class="fa fa-sign-in mr-2"></i>登录
+            </button>
+            <button id="register-btn" class="px-6 py-3 rounded-full border border-accent hover:bg-accent hover:bg-opacity-20 transition-all duration-300 hidden transform hover:scale-105">
+                <i class="fa fa-user-plus mr-2"></i>注册
+            </button>
+            <div id="user-menu" class="hidden">
+                <button id="user-menu-btn" class="flex items-center space-x-2 focus:outline-none">
+                    <div class="w-8 h-8 rounded-full bg-accent flex items-center justify-center">
+                        <span id="user-initial">U</span>
+                    </div>
+                    <span id="username-display">用户名</span>
+                    <i class="fa fa-caret-down"></i>
+                </button>
+                <div id="user-dropdown" class="absolute right-6 mt-2 w-48 glass-dark rounded-lg shadow-lg py-1 hidden">
+                    <a href="#" class="block px-4 py-2 hover:bg-accent hover:bg-opacity-20" data-page="profile">个人中心</a>
+                    <a href="#" class="block px-4 py-2 hover:bg-accent hover:bg-opacity-20" data-page="settings">设置</a>
+                    <a href="#" class="block px-4 py-2 hover:bg-accent hover:bg-opacity-20" id="logout-btn">退出登录</a>
+                    <a href="#" class="block px-4 py-2 hover:bg-accent hover:bg-opacity-20 admin-only" data-page="admin">管理后台</a>
+                </div>
+            </div>
+            <button id="mobile-menu-btn" class="md:hidden text-2xl">
+                <i class="fa fa-bars"></i>
+            </button>
+        </div>
+    </nav>
+    
+    <!-- Mobile Menu -->
+    <div id="mobile-menu" class="fixed inset-0 z-40 glass-dark transform translate-x-full transition-transform duration-300 md:hidden">
+        <div class="flex justify-end p-6">
+            <button id="close-mobile-menu">
+                <i class="fa fa-times text-2xl"></i>
+            </button>
+        </div>
+        <div class="flex flex-col items-center space-y-8 mt-16">
+            <a href="#" class="text-xl mobile-nav-link" data-page="home">首页</a>
+            <a href="#" class="text-xl mobile-nav-link" data-page="history">播放历史</a>
+            <a href="#" class="text-xl mobile-nav-link" data-page="feedback">反馈</a>
+            <a href="#" class="text-xl mobile-nav-link" data-page="profile">个人中心</a>
+            <a href="#" class="text-xl mobile-nav-link admin-only" data-page="admin">管理后台</a>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <main class="flex-grow relative z-10 container mx-auto px-4 py-8">
+        <!-- Pages -->
+        <div id="pages">
+            <!-- Home Page -->
+            <div id="home-page" class="page active">
+                <div class="text-center mb-12" data-aos="fade-up">
+                    <h2 class="text-4xl md:text-5xl font-bold mb-4 text-shadow">场景驱动的音乐体验</h2>
+                    <p class="text-xl text-gray-300 max-w-2xl mx-auto">
+                        根据您的当前状态选择合适的音乐场景，提升专注度、激发创造力或放松身心
+                    </p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
+                    <!-- Focus Scene -->
+                    <div class="scene-card gradient-border glass-dark rounded-xl overflow-hidden hover:shadow-lg hover:shadow-accent/20 transition-all duration-300" data-aos="fade-up" data-aos-delay="100" data-scene="focus">
+                        <div class="p-6">
+                            <div class="w-16 h-16 mx-auto mb-6 bg-accent bg-opacity-20 rounded-full flex items-center justify-center">
+                                <img src="https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/7fb9b0c078bb4800a26656e6277260d1~tplv-a9rns2rl98-image.image?rcl=20251130001341BFD38C4D619EAA0EA6EE&rk3s=8e244e95&rrcfp=f06b921b&x-expires=1767024843&x-signature=jRdY0IUPI9hIaP1OUVUsUs2GRSw%3D" 
+                                     alt="Focus" class="w-10 h-10 object-contain">
+                            </div>
+                            <h3 class="text-2xl font-bold text-center mb-4">专注场景</h3>
+                            <p class="text-gray-300 text-center mb-6">
+                                帮助您进入心流状态，提高工作和学习效率
+                            </p>
+                            <div class="flex justify-center">
+                                <button class="select-scene-btn px-6 py-3 rounded-full bg-accent hover:bg-highlight transition-all duration-300" data-scene="focus">
+                                    选择场景
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Create Scene -->
+                    <div class="scene-card gradient-border glass-dark rounded-xl overflow-hidden hover:shadow-lg hover:shadow-accent/20 transition-all duration-300" data-aos="fade-up" data-aos-delay="200" data-scene="create">
+                        <div class="p-6">
+                            <div class="w-16 h-16 mx-auto mb-6 bg-accent bg-opacity-20 rounded-full flex items-center justify-center">
+                                <img src="https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/fec9e566fde74db3838f838a2caef9e7~tplv-a9rns2rl98-image.image?rcl=20251130001341BFD38C4D619EAA0EA6EE&rk3s=8e244e95&rrcfp=f06b921b&x-expires=1767024843&x-signature=aykUiQURoK2MzDvsnZAruhBW5YI%3D" 
+                                     alt="Create" class="w-10 h-10 object-contain">
+                            </div>
+                            <h3 class="text-2xl font-bold text-center mb-4">创造场景</h3>
+                            <p class="text-gray-300 text-center mb-6">
+                                激发创意灵感，提升艺术创作和问题解决能力
+                            </p>
+                            <div class="flex justify-center">
+                                <button class="select-scene-btn px-6 py-3 rounded-full bg-accent hover:bg-highlight transition-all duration-300" data-scene="create">
+                                    选择场景
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Meditate Scene -->
+                    <div class="scene-card gradient-border glass-dark rounded-xl overflow-hidden hover:shadow-lg hover:shadow-accent/20 transition-all duration-300" data-aos="fade-up" data-aos-delay="300" data-scene="meditate">
+                        <div class="p-6">
+                            <div class="w-16 h-16 mx-auto mb-6 bg-accent bg-opacity-20 rounded-full flex items-center justify-center">
+                                <img src="https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/199a6d2015944289ad3e0fefe1279593~tplv-a9rns2rl98-image.image?rcl=20251130001341BFD38C4D619EAA0EA6EE&rk3s=8e244e95&rrcfp=f06b921b&x-expires=1767024843&x-signature=fh%2F9lyIe52C0f0RgS8qfnGw5ems%3D" 
+                                     alt="Meditate" class="w-10 h-10 object-contain">
+                            </div>
+                            <h3 class="text-2xl font-bold text-center mb-4">冥想场景</h3>
+                            <p class="text-gray-300 text-center mb-6">
+                                放松身心，减轻压力，恢复精力
+                            </p>
+                            <div class="flex justify-center">
+                                <button class="select-scene-btn px-6 py-3 rounded-full bg-accent hover:bg-highlight transition-all duration-300" data-scene="meditate">
+                                    选择场景
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Genre Selection Page -->
+            <div id="genre-page" class="page hidden">
+                <div class="mb-8">
+                    <button id="back-to-scenes" class="flex items-center space-x-2 text-accent hover:text-highlight transition-colors duration-300">
+                        <i class="fa fa-arrow-left"></i>
+                        <span>返回场景选择</span>
+                    </button>
+                    <h2 id="scene-title" class="text-3xl font-bold mt-4 mb-2">专注场景</h2>
+                    <p id="scene-description" class="text-gray-300">
+                        帮助您进入心流状态，提高工作和学习效率
+                    </p>
+                </div>
+                
+                <div id="genres-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Genres will be dynamically inserted here -->
+                </div>
+            </div>
+            
+            <!-- Music List Page -->
+            <div id="music-page" class="page hidden">
+                <div class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between">
+                    <div>
+                        <button id="back-to-genres" class="flex items-center space-x-2 text-accent hover:text-highlight transition-colors duration-300">
+                            <i class="fa fa-arrow-left"></i>
+                            <span>返回风格选择</span>
+                        </button>
+                        <h2 id="genre-title" class="text-3xl font-bold mt-4 mb-2">Uplifting Trance</h2>
+                        <p id="genre-description" class="text-gray-300 mb-4">
+                            节奏明快，旋律优美，适合长时间专注工作
+                        </p>
+                    </div>
+                    
+                    <div class="mt-4 md:mt-0">
+                        <button id="regenerate-music-btn" class="px-6 py-3 rounded-full bg-gradient-to-r from-accent to-highlight hover:shadow-lg hover:shadow-accent/30 transition-all duration-300 transform hover:scale-105 flex items-center">
+                            <i class="fa fa-refresh mr-2"></i>
+                            <span>重新生成AI音乐</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="music-list" class="space-y-4">
+                    <!-- Music items will be dynamically inserted here -->
+                </div>
+            </div>
+            
+            <!-- History Page -->
+            <div id="history-page" class="page hidden">
+                <h2 class="text-3xl font-bold mb-6">播放历史</h2>
+                
+                <div id="history-list" class="space-y-4">
+                    <!-- History items will be dynamically inserted here -->
+                </div>
+            </div>
+            
+            <!-- Feedback Page -->
+            <div id="feedback-page" class="page hidden">
+                <h2 class="text-3xl font-bold mb-6">提交反馈</h2>
+                
+                <div class="glass-dark rounded-xl p-6 max-w-2xl mx-auto">
+                    <form id="feedback-form">
+                        <div class="mb-4">
+                            <label for="feedback-type" class="block text-sm font-medium text-gray-300 mb-2">反馈类型</label>
+                            <select id="feedback-type" class="w-full bg-secondary border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent">
+                                <option value="bug">错误报告</option>
+                                <option value="feature">功能建议</option>
+                                <option value="improvement">改进意见</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="feedback-title" class="block text-sm font-medium text-gray-300 mb-2">标题</label>
+                            <input type="text" id="feedback-title" class="w-full bg-secondary border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent" placeholder="请输入标题">
+                        </div>
+                        
+                        <div class="mb-6">
+                            <label for="feedback-content" class="block text-sm font-medium text-gray-300 mb-2">内容</label>
+                            <textarea id="feedback-content" rows="5" class="w-full bg-secondary border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent" placeholder="请详细描述您的反馈..."></textarea>
+                        </div>
+                        
+                        <div class="flex justify-end">
+                            <button type="submit" class="px-6 py-2 rounded-lg bg-accent hover:bg-highlight transition-all duration-300">
+                                提交反馈
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Profile Page -->
+            <div id="profile-page" class="page hidden">
+                <h2 class="text-3xl font-bold mb-6">个人中心</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="glass-dark rounded-xl p-6">
+                        <div class="flex flex-col items-center">
+                            <div class="w-24 h-24 rounded-full bg-gradient-to-r from-accent to-highlight flex items-center justify-center mb-4">
+                                <span id="profile-initial" class="text-3xl font-bold">U</span>
+                            </div>
+                            <h3 id="profile-username" class="text-xl font-bold">用户名</h3>
+                            <p id="profile-email" class="text-gray-300">user@example.com</p>
+                            <div class="mt-4 px-4 py-2 rounded-full bg-accent bg-opacity-20 text-accent">
+                                <span id="profile-role">普通用户</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="glass-dark rounded-xl p-6 md:col-span-2">
+                        <h3 class="text-xl font-bold mb-4">个人信息</h3>
+                        
+                        <form id="profile-form">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label for="edit-username" class="block text-sm font-medium text-gray-300 mb-2">用户名</label>
+                                    <input type="text" id="edit-username" class="w-full bg-secondary border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent">
+                                </div>
+                                <div>
+                                    <label for="edit-email" class="block text-sm font-medium text-gray-300 mb-2">邮箱</label>
+                                    <input type="email" id="edit-email" class="w-full bg-secondary border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent">
+                                </div>
+                            </div>
+                            
+                            <div class="mb-6">
+                                <label for="edit-password" class="block text-sm font-medium text-gray-300 mb-2">修改密码 (留空表示不修改)</label>
+                                <input type="password" id="edit-password" class="w-full bg-secondary border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent" placeholder="请输入新密码">
+                            </div>
+                            
+                            <div class="flex justify-end">
+                                <button type="submit" class="px-6 py-2 rounded-lg bg-accent hover:bg-highlight transition-all duration-300">
+                                    保存修改
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="mt-8 glass-dark rounded-xl p-6">
+                    <h3 class="text-xl font-bold mb-4">音乐偏好</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>
+                            <h4 class="text-lg font-medium mb-3">场景偏好</h4>
+                            <div class="h-64">
+                                <canvas id="scene-preference-chart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h4 class="text-lg font-medium mb-3">风格偏好</h4>
+                            <div class="h-64">
+                                <canvas id="genre-preference-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Admin Page -->
+            <div id="admin-page" class="page hidden">
+                <h2 class="text-3xl font-bold mb-6">管理后台</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="glass-dark rounded-xl p-6">
+                        <h3 class="text-xl font-bold mb-4">用户管理</h3>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full">
+                                <thead>
+                                    <tr class="border-b border-gray-700">
+                                        <th class="py-3 px-4 text-left">用户名</th>
+                                        <th class="py-3 px-4 text-left">邮箱</th>
+                                        <th class="py-3 px-4 text-left">角色</th>
+                                        <th class="py-3 px-4 text-left">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="users-table">
+                                    <!-- Users will be dynamically inserted here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="glass-dark rounded-xl p-6">
+                        <h3 class="text-xl font-bold mb-4">反馈管理</h3>
+                        
+                        <div class="space-y-4 max-h-96 overflow-y-auto scrollbar-hide" id="feedback-list">
+                            <!-- Feedback items will be dynamically inserted here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-8 glass-dark rounded-xl p-6">
+                    <h3 class="text-xl font-bold mb-4">系统统计</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-secondary rounded-lg p-4">
+                            <h4 class="text-gray-300 mb-2">总用户数</h4>
+                            <p class="text-3xl font-bold" id="total-users">0</p>
+                        </div>
+                        
+                        <div class="bg-secondary rounded-lg p-4">
+                            <h4 class="text-gray-300 mb-2">总播放次数</h4>
+                            <p class="text-3xl font-bold" id="total-plays">0</p>
+                        </div>
+                        
+                        <div class="bg-secondary rounded-lg p-4">
+                            <h4 class="text-gray-300 mb-2">总反馈数</h4>
+                            <p class="text-3xl font-bold" id="total-feedback">0</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Login/Register Modal -->
+            <div id="auth-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+                <div class="absolute inset-0 bg-black bg-opacity-70 backdrop-blur-sm" id="modal-overlay"></div>
+                
+                <div class="glass-dark rounded-2xl p-8 max-w-md w-full relative z-10 transform transition-all duration-300 hover:shadow-2xl hover:shadow-accent/20">
+                    <div class="flex justify-between items-center mb-8">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-r from-accent to-highlight flex items-center justify-center">
+                                <i class="fa fa-music text-white text-xl"></i>
+                            </div>
+                            <h3 class="text-2xl font-bold">Focus.ai</h3>
+                        </div>
+                        <button id="close-modal" class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-700 transition-colors duration-300">
+                            <i class="fa fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="flex mb-8">
+                        <button id="show-login-form" class="flex-1 py-3 text-center border-b-2 border-accent text-lg font-medium">登录</button>
+                        <button id="show-register-form" class="flex-1 py-3 text-center border-b-2 border-gray-700 text-lg font-medium">注册</button>
+                    </div>
+                    
+                    <!-- Login Form -->
+                    <form id="login-form" class="space-y-6">
+                        <div>
+                            <label for="login-username" class="block text-sm font-medium text-gray-300 mb-2">用户名</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                                    <i class="fa fa-user"></i>
+                                </span>
+                                <input type="text" id="login-username" class="w-full bg-secondary border border-gray-700 rounded-lg px-10 py-3 focus:outline-none focus:ring-2 focus:ring-accent transition-all duration-300" placeholder="请输入用户名">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label for="login-password" class="block text-sm font-medium text-gray-300 mb-2">密码</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                                    <i class="fa fa-lock"></i>
+                                </span>
+                                <input type="password" id="login-password" class="w-full bg-secondary border border-gray-700 rounded-lg px-10 py-3 focus:outline-none focus:ring-2 focus:ring-accent transition-all duration-300" placeholder="请输入密码">
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <input id="remember-me" type="checkbox" class="h-4 w-4 text-accent focus:ring-accent border-gray-700 rounded">
+                                <label for="remember-me" class="ml-2 block text-sm text-gray-300">记住我</label>
+                            </div>
+                            <a href="#" class="text-sm text-accent hover:text-highlight">忘记密码?</a>
+                        </div>
+                        
+                        <div>
+                            <button type="submit" class="w-full px-6 py-3 rounded-lg bg-gradient-to-r from-accent to-highlight hover:shadow-lg hover:shadow-accent/30 transition-all duration-300 transform hover:scale-[1.02]">
+                                登录
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <!-- Register Form -->
+                    <form id="register-form" class="space-y-6 hidden">
+                        <div>
+                            <label for="register-username" class="block text-sm font-medium text-gray-300 mb-2">用户名</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                                    <i class="fa fa-user"></i>
+                                </span>
+                                <input type="text" id="register-username" class="w-full bg-secondary border border-gray-700 rounded-lg px-10 py-3 focus:outline-none focus:ring-2 focus:ring-accent transition-all duration-300" placeholder="请输入用户名">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label for="register-email" class="block text-sm font-medium text-gray-300 mb-2">邮箱</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                                    <i class="fa fa-envelope"></i>
+                                </span>
+                                <input type="email" id="register-email" class="w-full bg-secondary border border-gray-700 rounded-lg px-10 py-3 focus:outline-none focus:ring-2 focus:ring-accent transition-all duration-300" placeholder="请输入邮箱">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label for="register-password" class="block text-sm font-medium text-gray-300 mb-2">密码</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                                    <i class="fa fa-lock"></i>
+                                </span>
+                                <input type="password" id="register-password" class="w-full bg-secondary border border-gray-700 rounded-lg px-10 py-3 focus:outline-none focus:ring-2 focus:ring-accent transition-all duration-300" placeholder="请输入密码 (至少6个字符)">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <button type="submit" class="w-full px-6 py-3 rounded-lg bg-gradient-to-r from-accent to-highlight hover:shadow-lg hover:shadow-accent/30 transition-all duration-300 transform hover:scale-[1.02]">
+                                注册
+                            </button>
+                        </div>
+                        
+                        <p class="text-xs text-center text-gray-400 mt-4">
+                            注册即表示您同意我们的 <a href="#" class="text-accent hover:underline">服务条款</a> 和 <a href="#" class="text-accent hover:underline">隐私政策</a>
+                        </p>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Audio Element -->
+    <audio id="audio-player" preload="metadata"></audio>
+    
+    <!-- Now Playing Bar (Fixed at bottom) -->
+    <div id="now-playing-bar" class="glass-dark border-t border-gray-800 py-4 px-6 hidden">
+        <div class="container mx-auto flex flex-col md:flex-row items-center justify-between">
+            <div class="flex items-center mb-4 md:mb-0">
+                <div class="w-14 h-14 bg-accent bg-opacity-20 rounded-lg flex items-center justify-center mr-4">
+                    <i class="fa fa-music text-xl"></i>
+                </div>
+                <div>
+                    <h4 id="now-playing-title" class="font-medium">歌曲名称</h4>
+                    <p id="now-playing-artist" class="text-sm text-gray-300">艺术家</p>
+                </div>
+            </div>
+            
+            <div class="flex flex-col items-center w-full md:w-auto">
+                <div class="flex items-center space-x-6 mb-2">
+                    <button id="prev-btn" class="text-gray-300 hover:text-white transition-colors duration-300">
+                        <i class="fa fa-step-backward"></i>
+                    </button>
+                    <button id="play-pause-btn" class="w-10 h-10 rounded-full bg-accent flex items-center justify-center">
+                        <i id="play-pause-icon" class="fa fa-play"></i>
+                    </button>
+                    <button id="next-btn" class="text-gray-300 hover:text-white transition-colors duration-300">
+                        <i class="fa fa-step-forward"></i>
+                    </button>
+                </div>
+                
+                <div class="flex items-center space-x-4 w-full md:w-64">
+                    <span id="current-time" class="text-xs text-gray-400">0:00</span>
+                    <div class="flex-grow h-1 bg-gray-700 rounded-full overflow-hidden">
+                        <div id="progress-bar" class="h-full bg-accent w-0"></div>
+                    </div>
+                    <span id="duration" class="text-xs text-gray-400">0:00</span>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-2">
+                    <i class="fa fa-volume-up text-gray-300"></i>
+                    <div class="w-24 h-1 bg-gray-700 rounded-full overflow-hidden">
+                        <div id="volume-bar" class="h-full bg-accent w-16"></div>
+                    </div>
+                </div>
+                <button id="rating-btn" class="text-gray-300 hover:text-yellow-400 transition-colors duration-300">
+                    <i class="fa fa-star-o"></i>
+                </button>
+                <button id="more-btn" class="text-gray-300 hover:text-white transition-colors duration-300">
+                    <i class="fa fa-ellipsis-v"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Rating Modal -->
+    <div id="rating-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="absolute inset-0 bg-black bg-opacity-50" id="rating-modal-overlay"></div>
+        
+        <div class="glass-dark rounded-xl p-8 max-w-md w-full relative z-10">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold">评价音乐</h3>
+                <button id="close-rating-modal">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="mb-6">
+                <h4 id="rating-song-title" class="font-medium text-lg mb-2">歌曲名称</h4>
+                <div class="flex items-center justify-center space-x-2 my-4">
+                    <i class="fa fa-star-o text-2xl text-yellow-400 cursor-pointer rating-star" data-rating="1"></i>
+                    <i class="fa fa-star-o text-2xl text-yellow-400 cursor-pointer rating-star" data-rating="2"></i>
+                    <i class="fa fa-star-o text-2xl text-yellow-400 cursor-pointer rating-star" data-rating="3"></i>
+                    <i class="fa fa-star-o text-2xl text-yellow-400 cursor-pointer rating-star" data-rating="4"></i>
+                    <i class="fa fa-star-o text-2xl text-yellow-400 cursor-pointer rating-star" data-rating="5"></i>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="rating-comment" class="block text-sm font-medium text-gray-300 mb-2">评论 (可选)</label>
+                    <textarea id="rating-comment" rows="3" class="w-full bg-secondary border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent" placeholder="请输入您的评论..."></textarea>
+                </div>
+                
+                <div class="flex justify-end">
+                    <button id="submit-rating" class="px-6 py-2 rounded-lg bg-accent hover:bg-highlight transition-all duration-300">
+                        提交评价
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Notification -->
+    <div id="notification" class="fixed bottom-4 right-4 glass-dark rounded-lg p-4 shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 z-50 max-w-xs">
+        <div class="flex items-start">
+            <div id="notification-icon" class="w-6 h-6 rounded-full flex items-center justify-center mr-3">
+                <i class="fa fa-check text-sm"></i>
+            </div>
+            <div class="flex-grow">
+                <h4 id="notification-title" class="font-medium">成功</h4>
+                <p id="notification-message" class="text-sm text-gray-300">操作成功</p>
+            </div>
+            <button id="close-notification" class="text-gray-400 hover:text-white">
+                <i class="fa fa-times"></i>
+            </button>
+        </div>
+    </div>
+    
+    <script>
+        // Data
+        // 不同风格的音频URL集合
+        const genreAudioUrls = {
+            'uplifting-trance': [
+                "https://disk.sample.cat/samples/mp3/file_example_MP3_2MG.mp3",
+                "https://disk.sample.cat/samples/mp3/file_example_MP3_5MG.mp3",
+                "https://disk.sample.cat/samples/mp3/file_example_MP3_1MG.mp3",
+                "https://disk.sample.cat/samples/mp3/suzume_no_tojimari.mp3",
+                "https://disk.sample.cat/samples/mp3/file_example_MP3_700KB.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/15/audio_8893005436.mp3?filename=epic-orchestral-trailer-121053.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_da268128b6.mp3?filename=abstract-cinematic-trailer-112936.mp3"
+            ],
+            'funky-house': [
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_2395a1a933.mp3?filename=funky-groove-120-bpm-121390.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_4a9d5c7600.mp3?filename=disco-funk-120-bpm-121389.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_5d7a8f0e5d.mp3?filename=retro-funk-groove-112842.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_6d7a8f0e5d.mp3?filename=funky-disco-120-bpm-121388.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_7d7a8f0e5d.mp3?filename=disco-funk-120-bpm-121387.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_8d7a8f0e5d.mp3?filename=funky-groove-120-bpm-121386.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_9d7a8f0e5d.mp3?filename=disco-funk-120-bpm-121385.mp3"
+            ],
+            'lo-fi': [
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_3a9d5c7600.mp3?filename=lofi-hip-hop-112842.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_4a9d5c7600.mp3?filename=lofi-hip-hop-112841.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_5a9d5c7600.mp3?filename=lofi-hip-hop-112840.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_6a9d5c7600.mp3?filename=lofi-hip-hop-112839.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_7a9d5c7600.mp3?filename=lofi-hip-hop-112838.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_8a9d5c7600.mp3?filename=lofi-hip-hop-112837.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_9a9d5c7600.mp3?filename=lofi-hip-hop-112836.mp3"
+            ],
+            'disco-funk': [
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_2395a1a933.mp3?filename=funky-groove-120-bpm-121390.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_4a9d5c7600.mp3?filename=disco-funk-120-bpm-121389.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_5d7a8f0e5d.mp3?filename=retro-funk-groove-112842.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_6d7a8f0e5d.mp3?filename=funky-disco-120-bpm-121388.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_7d7a8f0e5d.mp3?filename=disco-funk-120-bpm-121387.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_8d7a8f0e5d.mp3?filename=funky-groove-120-bpm-121386.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_9d7a8f0e5d.mp3?filename=disco-funk-120-bpm-121385.mp3"
+            ],
+            'vaporwave': [
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_3a9d5c7600.mp3?filename=vaporwave-112842.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_4a9d5c7600.mp3?filename=vaporwave-112841.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_5a9d5c7600.mp3?filename=vaporwave-112840.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_6a9d5c7600.mp3?filename=vaporwave-112839.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_7a9d5c7600.mp3?filename=vaporwave-112838.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_8a9d5c7600.mp3?filename=vaporwave-112837.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_9a9d5c7600.mp3?filename=vaporwave-112836.mp3"
+            ],
+            'nu-disco': [
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_2395a1a933.mp3?filename=nu-disco-120-bpm-121390.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_4a9d5c7600.mp3?filename=nu-disco-120-bpm-121389.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_5d7a8f0e5d.mp3?filename=nu-disco-112842.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_6d7a8f0e5d.mp3?filename=nu-disco-120-bpm-121388.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_7d7a8f0e5d.mp3?filename=nu-disco-120-bpm-121387.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_8d7a8f0e5d.mp3?filename=nu-disco-120-bpm-121386.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_9d7a8f0e5d.mp3?filename=nu-disco-120-bpm-121385.mp3"
+            ],
+            'chill': [
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_3a9d5c7600.mp3?filename=chill-112842.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_4a9d5c7600.mp3?filename=chill-112841.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_5a9d5c7600.mp3?filename=chill-112840.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_6a9d5c7600.mp3?filename=chill-112839.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_7a9d5c7600.mp3?filename=chill-112838.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_8a9d5c7600.mp3?filename=chill-112837.mp3",
+                "https://cdn.pixabay.com/download/audio/2022/03/16/audio_9a9d5c7600.mp3?filename=chill-112836.mp3"
+            ]
+        };
+        
+        const scenes = {
+            focus: {
+                title: '专注场景',
+                description: '帮助您进入心流状态，提高工作和学习效率',
+                genres: [
+                    {
+                        id: 'uplifting-trance',
+                        name: 'Uplifting Trance',
+                        description: '节奏明快，旋律优美的Trance音乐，适合长时间专注工作',
+                        image: 'https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/7fb9b0c078bb4800a26656e6277260d1~tplv-a9rns2rl98-image.image?rcl=20251130001341BFD38C4D619EAA0EA6EE&rk3s=8e244e95&rrcfp=f06b921b&x-expires=1767024843&x-signature=jRdY0IUPI9hIaP1OUVUsUs2GRSw%3D',
+                        songs: [
+                            { id: 't1', title: 'Star Force', artist: 'XING KONG', duration: '0:24', originalTitle: 'Star Force', audioUrl: genreAudioUrls['uplifting-trance'][0] },
+                            { id: 't2', title: 'To Be Who We Truly Are', artist: 'Night Sky', duration: '0:24', originalTitle: 'To Be Who We Truly Are', audioUrl: genreAudioUrls['uplifting-trance'][1] },
+                            { id: 't3', title: 'Metallurgia', artist: 'Axure', duration: '0:24', originalTitle: 'Metallurgia', audioUrl: genreAudioUrls['uplifting-trance'][2] },
+                            { id: 't4', title: 'Way Down in Mexico', artist: 'Sean Tyas', duration: '0:24', originalTitle: 'Way Down in Mexico', audioUrl: genreAudioUrls['uplifting-trance'][3] },
+                            { id: 't5', title: 'Born', artist: 'Alan Morris', duration: '0:24', originalTitle: 'Born', audioUrl: genreAudioUrls['uplifting-trance'][4] },
+                            { id: 't6', title: 'Epic Orchestral', artist: 'Audio Library', duration: '0:24', originalTitle: 'Epic Orchestral', audioUrl: genreAudioUrls['uplifting-trance'][5] },
+                            { id: 't7', title: 'Abstract Cinematic', artist: 'Audio Library', duration: '0:24', originalTitle: 'Abstract Cinematic', audioUrl: genreAudioUrls['uplifting-trance'][6] }
+                        ]
+                    },
+                    {
+                        id: 'funky-house',
+                        name: 'Funky House',
+                        description: 'funk元素与house节奏结合，富有活力，适合创意工作',
+                        image: 'https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/7fb9b0c078bb4800a26656e6277260d1~tplv-a9rns2rl98-image.image?rcl=20251130001341BFD38C4D619EAA0EA6EE&rk3s=8e244e95&rrcfp=f06b921b&x-expires=1767024843&x-signature=jRdY0IUPI9hIaP1OUVUsUs2GRSw%3D',
+                        songs: [
+                            { id: 'f1', title: 'Funky Groove', artist: 'Audio Library', duration: '0:24', originalTitle: 'Funky Groove', audioUrl: genreAudioUrls['funky-house'][0] },
+                            { id: 'f2', title: 'Disco Funk', artist: 'Audio Library', duration: '0:24', originalTitle: 'Disco Funk', audioUrl: genreAudioUrls['funky-house'][1] },
+                            { id: 'f3', title: 'Retro Funk', artist: 'Audio Library', duration: '0:24', originalTitle: 'Retro Funk', audioUrl: genreAudioUrls['funky-house'][2] },
+                            { id: 'f4', title: 'Funky Disco', artist: 'Audio Library', duration: '0:24', originalTitle: 'Funky Disco', audioUrl: genreAudioUrls['funky-house'][3] },
+                            { id: 'f5', title: 'Disco Groove', artist: 'Audio Library', duration: '0:24', originalTitle: 'Disco Groove', audioUrl: genreAudioUrls['funky-house'][4] },
+                            { id: 'f6', title: 'Funk Party', artist: 'Audio Library', duration: '0:24', originalTitle: 'Funk Party', audioUrl: genreAudioUrls['funky-house'][5] },
+                            { id: 'f7', title: 'Disco Nights', artist: 'Audio Library', duration: '0:24', originalTitle: 'Disco Nights', audioUrl: genreAudioUrls['funky-house'][6] }
+                        ]
+                    },
+                    {
+                        id: 'lo-fi',
+                        name: 'Lo-Fi',
+                        description: '舒缓节拍和采样，适合轻松的学习和阅读',
+                        image: 'https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/7fb9b0c078bb4800a26656e6277260d1~tplv-a9rns2rl98-image.image?rcl=20251130001341BFD38C4D619EAA0EA6EE&rk3s=8e244e95&rrcfp=f06b921b&x-expires=1767024843&x-signature=jRdY0IUPI9hIaP1OUVUsUs2GRSw%3D',
+                        songs: [
+                            { id: 'l1', title: 'Lofi Hip Hop 1', artist: 'Audio Library', duration: '0:24', originalTitle: 'Lofi Hip Hop 1', audioUrl: genreAudioUrls['lo-fi'][0] },
+                            { id: 'l2', title: 'Lofi Hip Hop 2', artist: 'Audio Library', duration: '0:24', originalTitle: 'Lofi Hip Hop 2', audioUrl: genreAudioUrls['lo-fi'][1] },
+                            { id: 'l3', title: 'Lofi Hip Hop 3', artist: 'Audio Library', duration: '0:24', originalTitle: 'Lofi Hip Hop 3', audioUrl: genreAudioUrls['lo-fi'][2] },
+                            { id: 'l4', title: 'Lofi Hip Hop 4', artist: 'Audio Library', duration: '0:24', originalTitle: 'Lofi Hip Hop 4', audioUrl: genreAudioUrls['lo-fi'][3] },
+                            { id: 'l5', title: 'Lofi Hip Hop 5', artist: 'Audio Library', duration: '0:24', originalTitle: 'Lofi Hip Hop 5', audioUrl: genreAudioUrls['lo-fi'][4] },
+                            { id: 'l6', title: 'Lofi Hip Hop 6', artist: 'Audio Library', duration: '0:24', originalTitle: 'Lofi Hip Hop 6', audioUrl: genreAudioUrls['lo-fi'][5] },
+                            { id: 'l7', title: 'Lofi Hip Hop 7', artist: 'Audio Library', duration: '0:24', originalTitle: 'Lofi Hip Hop 7', audioUrl: genreAudioUrls['lo-fi'][6] }
+                        ]
+                    }
+                ]
+            },
+            create: {
+                title: '创造场景',
+                description: '激发创意灵感，提升艺术创作和问题解决能力',
+                genres: [
+                    {
+                        id: 'disco-funk',
+                        name: 'Disco Funk',
+                        description: '复古迪斯科与现代放克结合，充满活力和创意',
+                        image: 'https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/fec9e566fde74db3838f838a2caef9e7~tplv-a9rns2rl98-image.image?rcl=20251130001341BFD38C4D619EAA0EA6EE&rk3s=8e244e95&rrcfp=f06b921b&x-expires=1767024843&x-signature=aykUiQURoK2MzDvsnZAruhBW5YI%3D',
+                        songs: [
+                            { id: 'd1', title: 'Disco Funk 1', artist: 'Audio Library', duration: '0:24', originalTitle: 'Disco Funk 1', audioUrl: genreAudioUrls['disco-funk'][0] },
+                            { id: 'd2', title: 'Disco Funk 2', artist: 'Audio Library', duration: '0:24', originalTitle: 'Disco Funk 2', audioUrl: genreAudioUrls['disco-funk'][1] },
+                            { id: 'd3', title: 'Disco Funk 3', artist: 'Audio Library', duration: '0:24', originalTitle: 'Disco Funk 3', audioUrl: genreAudioUrls['disco-funk'][2] },
+                            { id: 'd4', title: 'Disco Funk 4', artist: 'Audio Library', duration: '0:24', originalTitle: 'Disco Funk 4', audioUrl: genreAudioUrls['disco-funk'][3] },
+                            { id: 'd5', title: 'Disco Funk 5', artist: 'Audio Library', duration: '0:24', originalTitle: 'Disco Funk 5', audioUrl: genreAudioUrls['disco-funk'][4] },
+                            { id: 'd6', title: 'Disco Funk 6', artist: 'Audio Library', duration: '0:24', originalTitle: 'Disco Funk 6', audioUrl: genreAudioUrls['disco-funk'][5] },
+                            { id: 'd7', title: 'Disco Funk 7', artist: 'Audio Library', duration: '0:24', originalTitle: 'Disco Funk 7', audioUrl: genreAudioUrls['disco-funk'][6] }
+                        ]
+                    },
+                    {
+                        id: 'vaporwave',
+                        name: 'Vaporwave',
+                        description: '复古电子与现代合成器结合，营造梦幻氛围',
+                        image: 'https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/fec9e566fde74db3838f838a2caef9e7~tplv-a9rns2rl98-image.image?rcl=20251130001341BFD38C4D619EAA0EA6EE&rk3s=8e244e95&rrcfp=f06b921b&x-expires=1767024843&x-signature=aykUiQURoK2MzDvsnZAruhBW5YI%3D',
+                        songs: [
+                            { id: 'v1', title: 'Vaporwave 1', artist: 'Audio Library', duration: '0:24', originalTitle: 'Vaporwave 1', audioUrl: genreAudioUrls['vaporwave'][0] },
+                            { id: 'v2', title: 'Vaporwave 2', artist: 'Audio Library', duration: '0:24', originalTitle: 'Vaporwave 2', audioUrl: genreAudioUrls['vaporwave'][1] },
+                            { id: 'v3', title: 'Vaporwave 3', artist: 'Audio Library', duration: '0:24', originalTitle: 'Vaporwave 3', audioUrl: genreAudioUrls['vaporwave'][2] },
+                            { id: 'v4', title: 'Vaporwave 4', artist: 'Audio Library', duration: '0:24', originalTitle: 'Vaporwave 4', audioUrl: genreAudioUrls['vaporwave'][3] },
+                            { id: 'v5', title: 'Vaporwave 5', artist: 'Audio Library', duration: '0:24', originalTitle: 'Vaporwave 5', audioUrl: genreAudioUrls['vaporwave'][4] },
+                            { id: 'v6', title: 'Vaporwave 6', artist: 'Audio Library', duration: '0:24', originalTitle: 'Vaporwave 6', audioUrl: genreAudioUrls['vaporwave'][5] },
+                            { id: 'v7', title: 'Vaporwave 7', artist: 'Audio Library', duration: '0:24', originalTitle: 'Vaporwave 7', audioUrl: genreAudioUrls['vaporwave'][6] }
+                        ]
+                    },
+                    {
+                        id: 'nu-disco',
+                        name: 'Nu Disco',
+                        description: '现代迪斯科风格，融合电子和放克元素',
+                        image: 'https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/fec9e566fde74db3838f838a2caef9e7~tplv-a9rns2rl98-image.image?rcl=20251130001341BFD38C4D619EAA0EA6EE&rk3s=8e244e95&rrcfp=f06b921b&x-expires=1767024843&x-signature=aykUiQURoK2MzDvsnZAruhBW5YI%3D',
+                        songs: [
+                            { id: 'n1', title: 'Nu Disco 1', artist: 'Audio Library', duration: '0:24', originalTitle: 'Nu Disco 1', audioUrl: genreAudioUrls['nu-disco'][0] },
+                            { id: 'n2', title: 'Nu Disco 2', artist: 'Audio Library', duration: '0:24', originalTitle: 'Nu Disco 2', audioUrl: genreAudioUrls['nu-disco'][1] },
+                            { id: 'n3', title: 'Nu Disco 3', artist: 'Audio Library', duration: '0:24', originalTitle: 'Nu Disco 3', audioUrl: genreAudioUrls['nu-disco'][2] },
+                            { id: 'n4', title: 'Nu Disco 4', artist: 'Audio Library', duration: '0:24', originalTitle: 'Nu Disco 4', audioUrl: genreAudioUrls['nu-disco'][3] },
+                            { id: 'n5', title: 'Nu Disco 5', artist: 'Audio Library', duration: '0:24', originalTitle: 'Nu Disco 5', audioUrl: genreAudioUrls['nu-disco'][4] },
+                            { id: 'n6', title: 'Nu Disco 6', artist: 'Audio Library', duration: '0:24', originalTitle: 'Nu Disco 6', audioUrl: genreAudioUrls['nu-disco'][5] },
+                            { id: 'n7', title: 'Nu Disco 7', artist: 'Audio Library', duration: '0:24', originalTitle: 'Nu Disco 7', audioUrl: genreAudioUrls['nu-disco'][6] }
+                        ]
+                    }
+                ]
+            },
+            meditate: {
+                title: '冥想场景',
+                description: '放松身心，减轻压力，恢复精力',
+                genres: [
+                    {
+                        id: 'chill',
+                        name: 'Chill',
+                        description: '舒缓节奏和旋律，帮助放松身心，减轻压力',
+                        image: 'https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/199a6d2015944289ad3e0fefe1279593~tplv-a9rns2rl98-image.image?rcl=20251130001341BFD38C4D619EAA0EA6EE&rk3s=8e244e95&rrcfp=f06b921b&x-expires=1767024843&x-signature=fh%2F9lyIe52C0f0RgS8qfnGw5ems%3D',
+                        songs: [
+                            { id: 'c1', title: 'Chill 1', artist: 'Audio Library', duration: '0:24', originalTitle: 'Chill 1', audioUrl: genreAudioUrls['chill'][0] },
+                            { id: 'c2', title: 'Chill 2', artist: 'Audio Library', duration: '0:24', originalTitle: 'Chill 2', audioUrl: genreAudioUrls['chill'][1] },
+                            { id: 'c3', title: 'Chill 3', artist: 'Audio Library', duration: '0:24', originalTitle: 'Chill 3', audioUrl: genreAudioUrls['chill'][2] },
+                            { id: 'c4', title: 'Chill 4', artist: 'Audio Library', duration: '0:24', originalTitle: 'Chill 4', audioUrl: genreAudioUrls['chill'][3] },
+                            { id: 'c5', title: 'Chill 5', artist: 'Audio Library', duration: '0:24', originalTitle: 'Chill 5', audioUrl: genreAudioUrls['chill'][4] },
+                            { id: 'c6', title: 'Chill 6', artist: 'Audio Library', duration: '0:24', originalTitle: 'Chill 6', audioUrl: genreAudioUrls['chill'][5] },
+                            { id: 'c7', title: 'Chill 7', artist: 'Audio Library', duration: '0:24', originalTitle: 'Chill 7', audioUrl: genreAudioUrls['chill'][6] }
+                        ]
+                    }
+                ]
+            }
+        };
+        
+        // AI-generated music title ideas
+        const aiTitleIdeas = [
+            'Neural Harmony', 'Brainwave Sync', 'Cognitive Flow', 'Mindful Melody', 'Synaptic Rhythm',
+            'Neuro Groove', 'Cerebral Beats', 'Mental Focus', 'Brain Boost', 'Neural Pulse',
+            'Cognitive Surge', 'Mind Wave', 'Brain Harmony', 'Neural Sync', 'Cerebral Flow',
+            'Mindful Groove', 'Brain Beats', 'Neural Focus', 'Cognitive Rhythm', 'Mind Wave',
+            'Brain Sync', 'Neural Melody', 'Cognitive Harmony', 'Mindful Pulse', 'Brain Groove'
+        ];
+        
+        // Function to generate random AI music title
+        function generateRandomTitle() {
+            const randomIndex = Math.floor(Math.random() * aiTitleIdeas.length);
+            return aiTitleIdeas[randomIndex];
+        }
+        
+        // Function to regenerate AI music for current genre
+        function regenerateMusic() {
+            if (!currentScene || !currentGenre) return;
+            
+            const scene = scenes[currentScene];
+            const genre = scene.genres.find(g => g.id === currentGenre);
+            
+            if (genre) {
+                // Regenerate AI music with new titles
+                genre.songs.forEach(song => {
+                    // Only regenerate if song has originalTitle stored
+                    if (song.originalTitle) {
+                        song.title = generateRandomTitle();
+                    }
+                });
+                
+                // Re-render songs list
+                renderSongs(genre.songs);
+                
+                // Show notification
+                showNotification('success', 'AI音乐已重新生成', 'AI已为您生成全新的音乐体验');
+            }
+        }
+        
+        // Mock user data
+        let users = [
+            { id: 'admin', username: 'admin', email: 'admin@example.com', password: 'admin123', role: 'admin', initial: 'A' }
+        ];
+        
+        // Mock history data
+        let playHistory = [];
+        
+        // Mock feedback data
+        let feedback = [];
+        
+        // Mock ratings data
+        let ratings = [];
+        
+        // Current state
+        let currentUser = null;
+        let currentScene = null;
+        let currentGenre = null;
+        let currentSong = null;
+        let isPlaying = false;
+        
+        // DOM Elements
+        const pages = document.querySelectorAll('.page');
+        const navLinks = document.querySelectorAll('.nav-link');
+        const mobileNavLinks = document.querySelectorAll('.mobile-nav-link');
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const closeMobileMenuBtn = document.getElementById('close-mobile-menu');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const userMenuBtn = document.getElementById('user-menu-btn');
+        const userDropdown = document.getElementById('user-dropdown');
+        const loginBtn = document.getElementById('login-btn');
+        const registerBtn = document.getElementById('register-btn');
+        const userMenu = document.getElementById('user-menu');
+        const logoutBtn = document.getElementById('logout-btn');
+        const authModal = document.getElementById('auth-modal');
+        const closeModalBtn = document.getElementById('close-modal');
+        const modalOverlay = document.getElementById('modal-overlay');
+        const showLoginFormBtn = document.getElementById('show-login-form');
+        const showRegisterFormBtn = document.getElementById('show-register-form');
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const audioPlayer = document.getElementById('audio-player');
+        const nowPlayingBar = document.getElementById('now-playing-bar');
+        const playPauseBtn = document.getElementById('play-pause-btn');
+        const playPauseIcon = document.getElementById('play-pause-icon');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const progressBar = document.getElementById('progress-bar');
+        const currentTimeDisplay = document.getElementById('current-time');
+        const durationDisplay = document.getElementById('duration');
+        const volumeBar = document.getElementById('volume-bar');
+        const ratingBtn = document.getElementById('rating-btn');
+        const ratingModal = document.getElementById('rating-modal');
+        const closeRatingModalBtn = document.getElementById('close-rating-modal');
+        const ratingModalOverlay = document.getElementById('rating-modal-overlay');
+        const ratingStars = document.querySelectorAll('.rating-star');
+        const submitRatingBtn = document.getElementById('submit-rating');
+        const notification = document.getElementById('notification');
+        const closeNotificationBtn = document.getElementById('close-notification');
+        const notificationTitle = document.getElementById('notification-title');
+        const notificationMessage = document.getElementById('notification-message');
+        const notificationIcon = document.getElementById('notification-icon');
+        const selectSceneBtns = document.querySelectorAll('.select-scene-btn');
+        const backToScenesBtn = document.getElementById('back-to-scenes');
+        const backToGenresBtn = document.getElementById('back-to-genres');
+        const sceneTitle = document.getElementById('scene-title');
+        const sceneDescription = document.getElementById('scene-description');
+        const genresContainer = document.getElementById('genres-container');
+        const genreTitle = document.getElementById('genre-title');
+        const genreDescription = document.getElementById('genre-description');
+        const musicList = document.getElementById('music-list');
+        const historyList = document.getElementById('history-list');
+        const feedbackForm = document.getElementById('feedback-form');
+        const profileForm = document.getElementById('profile-form');
+        const usersTable = document.getElementById('users-table');
+        const feedbackList = document.getElementById('feedback-list');
+        const totalUsersDisplay = document.getElementById('total-users');
+        const totalPlaysDisplay = document.getElementById('total-plays');
+        const totalFeedbackDisplay = document.getElementById('total-feedback');
+        
+        // Initialize AOS
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add event listener for regenerate music button
+            const regenerateBtn = document.getElementById('regenerate-music-btn');
+            if (regenerateBtn) {
+                regenerateBtn.addEventListener('click', regenerateMusic);
+            }
+            AOS.init({
+                duration: 800,
+                easing: 'ease-in-out',
+                once: true
+            });
+            
+            // Initialize charts
+            initCharts();
+            
+            // Check if user is logged in (from localStorage)
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                updateUserUI();
+            }
+            
+            // Load play history from localStorage
+            const savedHistory = localStorage.getItem('playHistory');
+            if (savedHistory) {
+                playHistory = JSON.parse(savedHistory);
+            }
+            
+            // Load feedback from localStorage
+            const savedFeedback = localStorage.getItem('feedback');
+            if (savedFeedback) {
+                feedback = JSON.parse(savedFeedback);
+            }
+            
+            // Load ratings from localStorage
+            const savedRatings = localStorage.getItem('ratings');
+            if (savedRatings) {
+                ratings = JSON.parse(savedRatings);
+            }
+            
+            // Update admin stats
+            updateAdminStats();
+            
+            // Show history if available
+            renderHistory();
+        });
+        
+        // Navigation
+        function showPage(pageId) {
+            pages.forEach(page => {
+                page.classList.add('hidden');
+                page.classList.remove('active');
+            });
+            
+            const targetPage = document.getElementById(pageId);
+            if (targetPage) {
+                targetPage.classList.remove('hidden');
+                targetPage.classList.add('active');
+                
+                // Scroll to top
+                window.scrollTo(0, 0);
+            }
+            
+            // Close mobile menu if open
+            mobileMenu.classList.add('translate-x-full');
+        }
+        
+        navLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const pageId = this.getAttribute('data-page') + '-page';
+                showPage(pageId);
+            });
+        });
+        
+        mobileNavLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const pageId = this.getAttribute('data-page') + '-page';
+                showPage(pageId);
+            });
+        });
+        
+        // Mobile menu
+        mobileMenuBtn.addEventListener('click', function() {
+            mobileMenu.classList.remove('translate-x-full');
+        });
+        
+        closeMobileMenuBtn.addEventListener('click', function() {
+            mobileMenu.classList.add('translate-x-full');
+        });
+        
+        // User dropdown
+        userMenuBtn.addEventListener('click', function() {
+            userDropdown.classList.toggle('hidden');
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!userMenuBtn.contains(e.target) && !userDropdown.contains(e.target)) {
+                userDropdown.classList.add('hidden');
+            }
+        });
+        
+        // Auth modal
+        function openAuthModal() {
+            authModal.classList.remove('hidden');
+        }
+        
+        function closeAuthModal() {
+            authModal.classList.add('hidden');
+        }
+        
+        loginBtn.addEventListener('click', openAuthModal);
+        registerBtn.addEventListener('click', openAuthModal);
+        closeModalBtn.addEventListener('click', closeAuthModal);
+        modalOverlay.addEventListener('click', closeAuthModal);
+        
+        // Switch between login and register forms
+        showLoginFormBtn.addEventListener('click', function() {
+            loginForm.classList.remove('hidden');
+            registerForm.classList.add('hidden');
+            showLoginFormBtn.classList.add('border-accent');
+            showLoginFormBtn.classList.remove('border-gray-700');
+            showRegisterFormBtn.classList.add('border-gray-700');
+            showRegisterFormBtn.classList.remove('border-accent');
+            document.querySelector('#auth-modal h3').textContent = '登录';
+        });
+        
+        showRegisterFormBtn.addEventListener('click', function() {
+            registerForm.classList.remove('hidden');
+            loginForm.classList.add('hidden');
+            showRegisterFormBtn.classList.add('border-accent');
+            showRegisterFormBtn.classList.remove('border-gray-700');
+            showLoginFormBtn.classList.add('border-gray-700');
+            showLoginFormBtn.classList.remove('border-accent');
+            document.querySelector('#auth-modal h3').textContent = '注册';
+        });
+        
+        // Login form submission
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+            
+            // Find user
+            const user = users.find(u => u.username === username && u.password === password);
+            
+            if (user) {
+                currentUser = user;
+                localStorage.setItem('currentUser', JSON.stringify(user));
+                updateUserUI();
+                closeAuthModal();
+                showNotification('success', '登录成功', '欢迎回来，' + user.username + '!');
+            } else {
+                showNotification('error', '登录失败', '用户名或密码错误');
+            }
+        });
+        
+        // Register form submission
+        registerForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('register-username').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            
+            // Validate
+            if (!username || !email || !password) {
+                showNotification('error', '注册失败', '请填写所有字段');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showNotification('error', '注册失败', '密码长度至少为6个字符');
+                return;
+            }
+            
+            // Check if username exists
+            const existingUser = users.find(u => u.username === username);
+            if (existingUser) {
+                showNotification('error', '注册失败', '用户名已存在');
+                return;
+            }
+            
+            // Create new user
+            const role = users.length === 0 ? 'admin' : 'user';
+            const newUser = {
+                id: 'user-' + Date.now(),
+                username: username,
+                email: email,
+                password: password,
+                role: role,
+                initial: username.charAt(0).toUpperCase()
+            };
+            
+            users.push(newUser);
+            currentUser = newUser;
+            localStorage.setItem('currentUser', JSON.stringify(newUser));
+            updateUserUI();
+            closeAuthModal();
+            showNotification('success', '注册成功', '欢迎加入Focus.ai，' + username + '!');
+            
+            // Update admin stats
+            updateAdminStats();
+        });
+        
+        // Logout
+        logoutBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            currentUser = null;
+            localStorage.removeItem('currentUser');
+            updateUserUI();
+            showNotification('success', '已退出登录', '期待您的再次使用');
+        });
+        
+        // Update user UI
+        function updateUserUI() {
+            if (currentUser) {
+                // Show user menu
+                userMenu.classList.remove('hidden');
+                loginBtn.classList.add('hidden');
+                registerBtn.classList.add('hidden');
+                
+                // Update user info
+                document.getElementById('user-initial').textContent = currentUser.initial;
+                document.getElementById('username-display').textContent = currentUser.username;
+                document.getElementById('profile-initial').textContent = currentUser.initial;
+                document.getElementById('profile-username').textContent = currentUser.username;
+                document.getElementById('profile-email').textContent = currentUser.email;
+                document.getElementById('profile-role').textContent = currentUser.role === 'admin' ? '管理员' : '普通用户';
+                document.getElementById('edit-username').value = currentUser.username;
+                document.getElementById('edit-email').value = currentUser.email;
+                
+                // Show/hide admin-only content
+                document.querySelectorAll('.admin-only').forEach(el => {
+                    if (currentUser.role === 'admin') {
+                        el.classList.remove('hidden');
+                    } else {
+                        el.classList.add('hidden');
+                    }
+                });
+                
+                // Update admin panel
+                if (currentUser.role === 'admin') {
+                    renderUsersTable();
+                    renderFeedbackList();
+                }
+            } else {
+                // Show login/register buttons
+                userMenu.classList.add('hidden');
+                loginBtn.classList.remove('hidden');
+                registerBtn.classList.remove('hidden');
+                
+                // Hide admin-only content
+                document.querySelectorAll('.admin-only').forEach(el => {
+                    el.classList.add('hidden');
+                });
+            }
+        }
+        
+        // Now playing bar
+        function showNowPlayingBar(song) {
+            nowPlayingBar.classList.remove('hidden');
+            document.getElementById('now-playing-title').textContent = song.title;
+            document.getElementById('now-playing-artist').textContent = song.artist;
+            durationDisplay.textContent = song.duration;
+            currentTimeDisplay.textContent = '0:00';
+            progressBar.style.width = '0%';
+            
+            // Add to play history if user is logged in
+            if (currentUser) {
+                const historyItem = {
+                    songId: song.id,
+                    title: song.title,
+                    artist: song.artist,
+                    duration: song.duration,
+                    timestamp: new Date().toISOString(),
+                    scene: currentScene,
+                    genre: currentGenre
+                };
+                
+                playHistory.unshift(historyItem);
+                localStorage.setItem('playHistory', JSON.stringify(playHistory));
+                renderHistory();
+                
+                // Update admin stats
+                updateAdminStats();
+            }
+        }
+        
+        function hideNowPlayingBar() {
+            nowPlayingBar.classList.add('hidden');
+            isPlaying = false;
+            playPauseIcon.classList.remove('fa-pause');
+            playPauseIcon.classList.add('fa-play');
+        }
+        
+        // Play/pause
+        playPauseBtn.addEventListener('click', function() {
+            if (!currentSong) return;
+            
+            if (audioPlayer.paused) {
+                // Play audio
+                audioPlayer.src = currentSong.audioUrl;
+                audioPlayer.play().then(() => {
+                    isPlaying = true;
+                    playPauseIcon.classList.remove('fa-play');
+                    playPauseIcon.classList.add('fa-pause');
+                }).catch(error => {
+                    console.error('Error playing audio:', error);
+                    showNotification('error', '播放失败', '无法播放音乐，请稍后再试');
+                });
+            } else {
+                // Pause audio
+                audioPlayer.pause();
+                isPlaying = false;
+                playPauseIcon.classList.remove('fa-pause');
+                playPauseIcon.classList.add('fa-play');
+            }
+        });
+        
+        // Audio progress update
+        audioPlayer.addEventListener('timeupdate', function() {
+            const percentage = (this.currentTime / this.duration) * 100;
+            progressBar.style.width = percentage + '%';
+            
+            // Update time display
+            const currentMinutes = Math.floor(this.currentTime / 60);
+            const currentSeconds = Math.floor(this.currentTime % 60);
+            currentTimeDisplay.textContent = `${currentMinutes}:${currentSeconds < 10 ? '0' : ''}${currentSeconds}`;
+        });
+        
+        // Audio ended
+        audioPlayer.addEventListener('ended', function() {
+            nextSong();
+        });
+        
+        // Next song
+        nextBtn.addEventListener('click', nextSong);
+        
+        function nextSong() {
+            if (!currentScene || !currentGenre || !currentSong) return;
+            
+            const genre = scenes[currentScene].genres.find(g => g.id === currentGenre);
+            if (!genre) return;
+            
+            const currentIndex = genre.songs.findIndex(song => song.id === currentSong.id);
+            let nextIndex = currentIndex + 1;
+            
+            if (nextIndex >= genre.songs.length) {
+                nextIndex = 0; // Loop back to first song
+            }
+            
+            currentSong = genre.songs[nextIndex];
+            showNowPlayingBar(currentSong);
+            
+            // Auto-play
+            if (isPlaying) {
+                audioPlayer.src = currentSong.audioUrl;
+                audioPlayer.play().then(() => {
+                    playPauseIcon.classList.remove('fa-play');
+                    playPauseIcon.classList.add('fa-pause');
+                }).catch(error => {
+                    console.error('Error playing audio:', error);
+                    showNotification('error', '播放失败', '无法播放音乐，请稍后再试');
+                });
+            }
+        }
+        
+        // Previous song
+        prevBtn.addEventListener('click', function() {
+            if (!currentScene || !currentGenre || !currentSong) return;
+            
+            const genre = scenes[currentScene].genres.find(g => g.id === currentGenre);
+            if (!genre) return;
+            
+            const currentIndex = genre.songs.findIndex(song => song.id === currentSong.id);
+            let prevIndex = currentIndex - 1;
+            
+            if (prevIndex < 0) {
+                prevIndex = genre.songs.length - 1; // Go to last song
+            }
+            
+            currentSong = genre.songs[prevIndex];
+            showNowPlayingBar(currentSong);
+            
+            // Auto-play
+            if (isPlaying) {
+                audioPlayer.src = currentSong.audioUrl;
+                audioPlayer.play().then(() => {
+                    playPauseIcon.classList.remove('fa-play');
+                    playPauseIcon.classList.add('fa-pause');
+                }).catch(error => {
+                    console.error('Error playing audio:', error);
+                    showNotification('error', '播放失败', '无法播放音乐，请稍后再试');
+                });
+            }
+        });
+        
+        // Volume control
+        volumeBar.addEventListener('click', function(e) {
+            const rect = this.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const percentage = (x / rect.width) * 100;
+            this.style.width = percentage + '%';
+            
+            // Set audio volume
+            audioPlayer.volume = percentage / 100;
+        });
+        
+        // Rating modal
+        ratingBtn.addEventListener('click', function() {
+            if (!currentSong) return;
+            
+            // Check if song is already rated
+            const existingRating = ratings.find(r => r.songId === currentSong.id && r.userId === currentUser.id);
+            
+            // Reset stars
+            ratingStars.forEach(star => {
+                star.classList.remove('fa-star');
+                star.classList.add('fa-star-o');
+            });
+            
+            // Set existing rating
+            if (existingRating) {
+                for (let i = 0; i < existingRating.rating; i++) {
+                    ratingStars[i].classList.remove('fa-star-o');
+                    ratingStars[i].classList.add('fa-star');
+                }
+                
+                document.getElementById('rating-comment').value = existingRating.comment || '';
+            } else {
+                document.getElementById('rating-comment').value = '';
+            }
+            
+            // Set song title
+            document.getElementById('rating-song-title').textContent = currentSong.title;
+            
+            // Show modal
+            ratingModal.classList.remove('hidden');
+        });
+        
+        closeRatingModalBtn.addEventListener('click', function() {
+            ratingModal.classList.add('hidden');
+        });
+        
+        ratingModalOverlay.addEventListener('click', function() {
+            ratingModal.classList.add('hidden');
+        });
+        
+        // Rating stars
+        let selectedRating = 0;
+        
+        ratingStars.forEach(star => {
+            star.addEventListener('click', function() {
+                const rating = parseInt(this.getAttribute('data-rating'));
+                selectedRating = rating;
+                
+                // Update stars
+                ratingStars.forEach((s, index) => {
+                    if (index < rating) {
+                        s.classList.remove('fa-star-o');
+                        s.classList.add('fa-star');
+                    } else {
+                        s.classList.remove('fa-star');
+                        s.classList.add('fa-star-o');
+                    }
+                });
+            });
+        });
+        
+        // Submit rating
+        submitRatingBtn.addEventListener('click', function() {
+            if (!currentUser || !currentSong || selectedRating === 0) return;
+            
+            const comment = document.getElementById('rating-comment').value;
+            
+            // Check if song is already rated
+            const existingRatingIndex = ratings.findIndex(r => r.songId === currentSong.id && r.userId === currentUser.id);
+            
+            if (existingRatingIndex >= 0) {
+                // Update existing rating
+                ratings[existingRatingIndex] = {
+                    ...ratings[existingRatingIndex],
+                    rating: selectedRating,
+                    comment: comment,
+                    timestamp: new Date().toISOString()
+                };
+            } else {
+                // Add new rating
+                ratings.push({
+                    id: 'rating-' + Date.now(),
+                    userId: currentUser.id,
+                    songId: currentSong.id,
+                    title: currentSong.title,
+                    artist: currentSong.artist,
+                    rating: selectedRating,
+                    comment: comment,
+                    timestamp: new Date().toISOString()
+                });
+            }
+            
+            // Save to localStorage
+            localStorage.setItem('ratings', JSON.stringify(ratings));
+            
+            // Close modal
+            ratingModal.classList.add('hidden');
+            
+            // Show notification
+            showNotification('success', '评价成功', '感谢您的反馈！');
+            
+            // Update history
+            renderHistory();
+        });
+        
+        // Notification
+        function showNotification(type, title, message) {
+            notificationTitle.textContent = title;
+            notificationMessage.textContent = message;
+            
+            // Set icon and color
+            if (type === 'success') {
+                notificationIcon.innerHTML = '<i class="fa fa-check text-sm"></i>';
+                notificationIcon.className = 'w-6 h-6 rounded-full bg-green-500 flex items-center justify-center mr-3';
+            } else if (type === 'error') {
+                notificationIcon.innerHTML = '<i class="fa fa-times text-sm"></i>';
+                notificationIcon.className = 'w-6 h-6 rounded-full bg-red-500 flex items-center justify-center mr-3';
+            } else if (type === 'warning') {
+                notificationIcon.innerHTML = '<i class="fa fa-exclamation text-sm"></i>';
+                notificationIcon.className = 'w-6 h-6 rounded-full bg-yellow-500 flex items-center justify-center mr-3';
+            } else if (type === 'info') {
+                notificationIcon.innerHTML = '<i class="fa fa-info text-sm"></i>';
+                notificationIcon.className = 'w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center mr-3';
+            }
+            
+            // Show notification
+            notification.classList.remove('translate-y-20', 'opacity-0');
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                hideNotification();
+            }, 5000);
+        }
+        
+        function hideNotification() {
+            notification.classList.add('translate-y-20', 'opacity-0');
+        }
+        
+        closeNotificationBtn.addEventListener('click', hideNotification);
+        
+        // Scene selection
+        selectSceneBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const sceneId = this.getAttribute('data-scene');
+                currentScene = sceneId;
+                
+                // Update scene info
+                const scene = scenes[sceneId];
+                sceneTitle.textContent = scene.title;
+                sceneDescription.textContent = scene.description;
+                
+                // Render genres
+                renderGenres(scene.genres);
+                
+                // Show genre page
+                showPage('genre-page');
+            });
+        });
+        
+        // Back to scenes
+        backToScenesBtn.addEventListener('click', function() {
+            showPage('home-page');
+        });
+        
+        // Render genres
+        function renderGenres(genres) {
+            genresContainer.innerHTML = '';
+            
+            genres.forEach(genre => {
+                const genreCard = document.createElement('div');
+                genreCard.className = 'gradient-border glass-dark rounded-xl overflow-hidden hover:shadow-lg hover:shadow-accent/20 transition-all duration-300';
+                genreCard.setAttribute('data-aos', 'fade-up');
+                genreCard.setAttribute('data-genre', genre.id);
+                
+                genreCard.innerHTML = `
+                    <div class="p-6">
+                        <div class="w-16 h-16 mx-auto mb-6 bg-accent bg-opacity-20 rounded-full flex items-center justify-center">
+                            <img src="${genre.image}" alt="${genre.name}" class="w-10 h-10 object-contain">
+                        </div>
+                        <h3 class="text-2xl font-bold text-center mb-4">${genre.name}</h3>
+                        <p class="text-gray-300 text-center mb-6">
+                            ${genre.description}
+                        </p>
+                        <div class="flex justify-center">
+                            <button class="select-genre-btn px-6 py-3 rounded-full bg-accent hover:bg-highlight transition-all duration-300" data-genre="${genre.id}">
+                                选择风格
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                genresContainer.appendChild(genreCard);
+                
+                // Add event listener
+                const selectBtn = genreCard.querySelector('.select-genre-btn');
+                selectBtn.addEventListener('click', function() {
+                    const genreId = this.getAttribute('data-genre');
+                    currentGenre = genreId;
+                    
+                    // Update genre info
+                    const selectedGenre = genres.find(g => g.id === genreId);
+                    genreTitle.textContent = selectedGenre.name;
+                    genreDescription.textContent = selectedGenre.description;
+                    
+                    // Render songs
+                    renderSongs(selectedGenre.songs);
+                    
+                    // Show music page
+                    showPage('music-page');
+                });
+            });
+        }
+        
+        // Back to genres
+        backToGenresBtn.addEventListener('click', function() {
+            showPage('genre-page');
+        });
+        
+        // Render songs
+        function renderSongs(songs) {
+            musicList.innerHTML = '';
+            
+            songs.forEach((song, index) => {
+                const songItem = document.createElement('div');
+                songItem.className = 'glass-dark rounded-lg p-4 hover:bg-accent hover:bg-opacity-10 transition-all duration-300 flex justify-between items-center cursor-pointer';
+                songItem.setAttribute('data-song-id', song.id);
+                
+                songItem.innerHTML = `
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 rounded bg-accent bg-opacity-20 flex items-center justify-center mr-4">
+                            <span>${index + 1}</span>
+                        </div>
+                        <div>
+                            <h4 class="font-medium">${song.title}</h4>
+                            <p class="text-sm text-gray-300">${song.artist}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <span class="text-sm text-gray-400">${song.duration}</span>
+                        <button class="play-song-btn text-accent hover:text-highlight transition-colors duration-300">
+                            <i class="fa fa-play"></i>
+                        </button>
+                    </div>
+                `;
+                
+                musicList.appendChild(songItem);
+                
+                // Add event listener
+                songItem.addEventListener('click', function() {
+                    const songId = this.getAttribute('data-song-id');
+                    const selectedSong = songs.find(s => s.id === songId);
+                    
+                    currentSong = selectedSong;
+                    showNowPlayingBar(selectedSong);
+                    
+                    // Auto-play
+                    isPlaying = true;
+                    audioPlayer.src = selectedSong.audioUrl;
+                    audioPlayer.play().then(() => {
+                        playPauseIcon.classList.remove('fa-play');
+                        playPauseIcon.classList.add('fa-pause');
+                    }).catch(error => {
+                        console.error('Error playing audio:', error);
+                        showNotification('error', '播放失败', '无法播放音乐，请稍后再试');
+                    });
+                });
+            });
+        }
+        
+        // Render history
+        function renderHistory() {
+            historyList.innerHTML = '';
+            
+            if (playHistory.length === 0) {
+                historyList.innerHTML = `
+                    <div class="text-center py-8 text-gray-400">
+                        <i class="fa fa-history text-4xl mb-4"></i>
+                        <p>播放历史为空</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            playHistory.forEach(item => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'glass-dark rounded-lg p-4 hover:bg-accent hover:bg-opacity-10 transition-all duration-300';
+                
+                // Check if song is rated
+                const rating = ratings.find(r => r.songId === item.songId && r.userId === currentUser?.id);
+                
+                historyItem.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h4 class="font-medium">${item.title}</h4>
+                            <p class="text-sm text-gray-300">${item.artist} • ${item.duration}</p>
+                            <div class="flex items-center mt-2">
+                                <span class="text-xs text-gray-400 mr-2">${formatDate(item.timestamp)}</span>
+                                <span class="text-xs px-2 py-1 rounded-full bg-accent bg-opacity-20 text-accent">${scenes[item.scene].title}</span>
+                                <span class="text-xs px-2 py-1 rounded-full bg-secondary ml-2">${scenes[item.scene].genres.find(g => g.id === item.genre).name}</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            ${rating ? `
+                                <div class="flex text-yellow-400">
+                                    ${getRatingStars(rating.rating)}
+                                </div>
+                            ` : `
+                                <button class="rate-history-btn text-gray-300 hover:text-yellow-400 transition-colors duration-300" data-song-id="${item.songId}" data-title="${item.title}" data-artist="${item.artist}">
+                                    <i class="fa fa-star-o"></i>
+                                </button>
+                            `}
+                            <button class="play-history-btn text-accent hover:text-highlight transition-colors duration-300" data-song-id="${item.songId}" data-scene="${item.scene}" data-genre="${item.genre}">
+                                <i class="fa fa-play"></i>
+                            </button>
+                        </div>
+                    </div>
+                    ${rating?.comment ? `
+                        <div class="mt-3 p-3 bg-secondary rounded-lg">
+                            <p class="text-sm">${rating.comment}</p>
+                        </div>
+                    ` : ''}
+                `;
+                
+                historyList.appendChild(historyItem);
+                
+                // Add event listeners
+                if (!rating) {
+                    const rateBtn = historyItem.querySelector('.rate-history-btn');
+                    rateBtn.addEventListener('click', function() {
+                        const songId = this.getAttribute('data-song-id');
+                        const title = this.getAttribute('data-title');
+                        const artist = this.getAttribute('data-artist');
+                        
+                        // Set current song for rating
+                        currentSong = { id: songId, title: title, artist: artist };
+                        
+                        // Open rating modal
+                        ratingBtn.click();
+                    });
+                }
+                
+                const playBtn = historyItem.querySelector('.play-history-btn');
+                playBtn.addEventListener('click', function() {
+                    const songId = this.getAttribute('data-song-id');
+                    const sceneId = this.getAttribute('data-scene');
+                    const genreId = this.getAttribute('data-genre');
+                    
+                    // Set current scene and genre
+                    currentScene = sceneId;
+                    currentGenre = genreId;
+                    
+                    // Find song
+                    const genre = scenes[sceneId].genres.find(g => g.id === genreId);
+                    const song = genre.songs.find(s => s.id === songId);
+                    
+                    if (song) {
+                        currentSong = song;
+                        showNowPlayingBar(song);
+                        
+                        // Auto-play
+                        isPlaying = true;
+                        audioPlayer.src = song.audioUrl;
+                        audioPlayer.play().then(() => {
+                            playPauseIcon.classList.remove('fa-play');
+                            playPauseIcon.classList.add('fa-pause');
+                        }).catch(error => {
+                            console.error('Error playing audio:', error);
+                            showNotification('error', '播放失败', '无法播放音乐，请稍后再试');
+                        });
+                    }
+                });
+            });
+        }
+        
+        // Format date
+        function formatDate(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleString('zh-CN', {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+        
+        // Get rating stars HTML
+        function getRatingStars(rating) {
+            let stars = '';
+            for (let i = 0; i < 5; i++) {
+                if (i < rating) {
+                    stars += '<i class="fa fa-star"></i>';
+                } else {
+                    stars += '<i class="fa fa-star-o"></i>';
+                }
+            }
+            return stars;
+        }
+        
+        // Feedback form submission
+        feedbackForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!currentUser) {
+                showNotification('error', '提交失败', '请先登录');
+                return;
+            }
+            
+            const type = document.getElementById('feedback-type').value;
+            const title = document.getElementById('feedback-title').value;
+            const content = document.getElementById('feedback-content').value;
+            
+            if (!title || !content) {
+                showNotification('error', '提交失败', '请填写标题和内容');
+                return;
+            }
+            
+            // Add feedback
+            const feedbackItem = {
+                id: 'feedback-' + Date.now(),
+                userId: currentUser.id,
+                username: currentUser.username,
+                type: type,
+                title: title,
+                content: content,
+                timestamp: new Date().toISOString(),
+                status: 'pending'
+            };
+            
+            feedback.push(feedbackItem);
+            localStorage.setItem('feedback', JSON.stringify(feedback));
+            
+            // Reset form
+            feedbackForm.reset();
+            
+            // Show notification
+            showNotification('success', '反馈提交成功', '感谢您的反馈，我们会尽快处理');
+            
+            // Update admin stats and feedback list
+            updateAdminStats();
+            if (currentUser.role === 'admin') {
+                renderFeedbackList();
+            }
+        });
+        
+        // Profile form submission
+        profileForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!currentUser) return;
+            
+            const username = document.getElementById('edit-username').value;
+            const email = document.getElementById('edit-email').value;
+            const password = document.getElementById('edit-password').value;
+            
+            if (!username || !email) {
+                showNotification('error', '保存失败', '请填写用户名和邮箱');
+                return;
+            }
+            
+            // Check if username exists (excluding current user)
+            const existingUser = users.find(u => u.username === username && u.id !== currentUser.id);
+            if (existingUser) {
+                showNotification('error', '保存失败', '用户名已存在');
+                return;
+            }
+            
+            // Update user
+            currentUser.username = username;
+            currentUser.email = email;
+            currentUser.initial = username.charAt(0).toUpperCase();
+            
+            if (password) {
+                if (password.length < 6) {
+                    showNotification('error', '保存失败', '密码长度至少为6个字符');
+                    return;
+                }
+                currentUser.password = password;
+            }
+            
+            // Update users array
+            const userIndex = users.findIndex(u => u.id === currentUser.id);
+            if (userIndex >= 0) {
+                users[userIndex] = currentUser;
+            }
+            
+            // Save to localStorage
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            
+            // Update UI
+            updateUserUI();
+            
+            // Reset password field
+            document.getElementById('edit-password').value = '';
+            
+            // Show notification
+            showNotification('success', '保存成功', '个人信息已更新');
+            
+            // Update admin panel
+            if (currentUser.role === 'admin') {
+                renderUsersTable();
+            }
+        });
+        
+        // Render users table (admin)
+        function renderUsersTable() {
+            usersTable.innerHTML = '';
+            
+            users.forEach(user => {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-gray-700 hover:bg-accent hover:bg-opacity-10';
+                
+                row.innerHTML = `
+                    <td class="py-3 px-4">${user.username}</td>
+                    <td class="py-3 px-4">${user.email}</td>
+                    <td class="py-3 px-4">
+                        <span class="px-2 py-1 rounded-full ${user.role === 'admin' ? 'bg-accent' : 'bg-secondary'}">
+                            ${user.role === 'admin' ? '管理员' : '普通用户'}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4">
+                        <button class="delete-user-btn text-red-400 hover:text-red-300 transition-colors duration-300" data-user-id="${user.id}">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                
+                usersTable.appendChild(row);
+                
+                // Add event listener
+                const deleteBtn = row.querySelector('.delete-user-btn');
+                deleteBtn.addEventListener('click', function() {
+                    const userId = this.getAttribute('data-user-id');
+                    
+                    // Can't delete admin if only one admin
+                    if (user.role === 'admin') {
+                        const adminCount = users.filter(u => u.role === 'admin').length;
+                        if (adminCount <= 1) {
+                            showNotification('error', '删除失败', '至少需要保留一名管理员');
+                            return;
+                        }
+                    }
+                    
+                    // Can't delete current user
+                    if (userId === currentUser.id) {
+                        showNotification('error', '删除失败', '不能删除当前登录用户');
+                        return;
+                    }
+                    
+                    // Confirm deletion
+                    if (confirm('确定要删除用户 ' + user.username + ' 吗？')) {
+                        // Remove user
+                        users = users.filter(u => u.id !== userId);
+                        
+                        // Update UI
+                        renderUsersTable();
+                        
+                        // Update admin stats
+                        updateAdminStats();
+                        
+                        // Show notification
+                        showNotification('success', '删除成功', '用户已删除');
+                    }
+                });
+            });
+        }
+        
+        // Render feedback list (admin)
+        function renderFeedbackList() {
+            feedbackList.innerHTML = '';
+            
+            if (feedback.length === 0) {
+                feedbackList.innerHTML = `
+                    <div class="text-center py-8 text-gray-400">
+                        <i class="fa fa-comment-o text-4xl mb-4"></i>
+                        <p>暂无反馈</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            feedback.forEach(item => {
+                const feedbackItem = document.createElement('div');
+                feedbackItem.className = 'glass-dark rounded-lg p-4 mb-4';
+                
+                feedbackItem.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h4 class="font-medium">${item.title}</h4>
+                            <p class="text-sm text-gray-300 mt-1">${item.content}</p>
+                            <div class="flex items-center mt-2">
+                                <span class="text-xs text-gray-400">${formatDate(item.timestamp)}</span>
+                                <span class="text-xs px-2 py-1 rounded-full ${getFeedbackTypeColor(item.type)} ml-2">${getFeedbackTypeName(item.type)}</span>
+                                <span class="text-xs px-2 py-1 rounded-full ${getFeedbackStatusColor(item.status)} ml-2">${getFeedbackStatusName(item.status)}</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <select class="update-feedback-status bg-secondary border border-gray-700 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-accent" data-feedback-id="${item.id}">
+                                <option value="pending" ${item.status === 'pending' ? 'selected' : ''}>待处理</option>
+                                <option value="processing" ${item.status === 'processing' ? 'selected' : ''}>处理中</option>
+                                <option value="resolved" ${item.status === 'resolved' ? 'selected' : ''}>已解决</option>
+                            </select>
+                            <button class="delete-feedback-btn text-red-400 hover:text-red-300 transition-colors duration-300" data-feedback-id="${item.id}">
+                                <i class="fa fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mt-3 text-sm text-gray-400">
+                        <p>提交者: ${item.username}</p>
+                    </div>
+                `;
+                
+                feedbackList.appendChild(feedbackItem);
+                
+                // Add event listeners
+                const statusSelect = feedbackItem.querySelector('.update-feedback-status');
+                statusSelect.addEventListener('change', function() {
+                    const feedbackId = this.getAttribute('data-feedback-id');
+                    const newStatus = this.value;
+                    
+                    // Update feedback
+                    const feedbackIndex = feedback.findIndex(f => f.id === feedbackId);
+                    if (feedbackIndex >= 0) {
+                        feedback[feedbackIndex].status = newStatus;
+                        localStorage.setItem('feedback', JSON.stringify(feedback));
+                        
+                        // Show notification
+                        showNotification('success', '状态已更新', '反馈状态已更新为: ' + getFeedbackStatusName(newStatus));
+                    }
+                });
+                
+                const deleteBtn = feedbackItem.querySelector('.delete-feedback-btn');
+                deleteBtn.addEventListener('click', function() {
+                    const feedbackId = this.getAttribute('data-feedback-id');
+                    
+                    // Confirm deletion
+                    if (confirm('确定要删除这条反馈吗？')) {
+                        // Remove feedback
+                        feedback = feedback.filter(f => f.id !== feedbackId);
+                        
+                        // Save to localStorage
+                        localStorage.setItem('feedback', JSON.stringify(feedback));
+                        
+                        // Update UI
+                        renderFeedbackList();
+                        
+                        // Update admin stats
+                        updateAdminStats();
+                        
+                        // Show notification
+                        showNotification('success', '删除成功', '反馈已删除');
+                    }
+                });
+            });
+        }
+        
+        // Get feedback type color
+        function getFeedbackTypeColor(type) {
+            switch (type) {
+                case 'bug':
+                    return 'bg-red-500 bg-opacity-20 text-red-400';
+                case 'feature':
+                    return 'bg-blue-500 bg-opacity-20 text-blue-400';
+                case 'improvement':
+                    return 'bg-yellow-500 bg-opacity-20 text-yellow-400';
+                default:
+                    return 'bg-gray-500 bg-opacity-20 text-gray-400';
+            }
+        }
+        
+        // Get feedback type name
+        function getFeedbackTypeName(type) {
+            switch (type) {
+                case 'bug':
+                    return '错误报告';
+                case 'feature':
+                    return '功能建议';
+                case 'improvement':
+                    return '改进意见';
+                default:
+                    return '其他';
+            }
+        }
+        
+        // Get feedback status color
+        function getFeedbackStatusColor(status) {
+            switch (status) {
+                case 'pending':
+                    return 'bg-yellow-500 bg-opacity-20 text-yellow-400';
+                case 'processing':
+                    return 'bg-blue-500 bg-opacity-20 text-blue-400';
+                case 'resolved':
+                    return 'bg-green-500 bg-opacity-20 text-green-400';
+                default:
+                    return 'bg-gray-500 bg-opacity-20 text-gray-400';
+            }
+        }
+        
+        // Get feedback status name
+        function getFeedbackStatusName(status) {
+            switch (status) {
+                case 'pending':
+                    return '待处理';
+                case 'processing':
+                    return '处理中';
+                case 'resolved':
+                    return '已解决';
+                default:
+                    return '未知';
+            }
+        }
+        
+        // Update admin stats
+        function updateAdminStats() {
+            totalUsersDisplay.textContent = users.length;
+            totalPlaysDisplay.textContent = playHistory.length;
+            totalFeedbackDisplay.textContent = feedback.length;
+        }
+        
+        // Initialize charts
+        function initCharts() {
+            // Scene preference chart
+            const sceneCtx = document.getElementById('scene-preference-chart').getContext('2d');
+            
+            // Calculate scene plays
+            const scenePlays = {
+                focus: playHistory.filter(item => item.scene === 'focus').length,
+                create: playHistory.filter(item => item.scene === 'create').length,
+                meditate: playHistory.filter(item => item.scene === 'meditate').length
+            };
+            
+            new Chart(sceneCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['专注场景', '创造场景', '冥想场景'],
+                    datasets: [{
+                        data: [scenePlays.focus, scenePlays.create, scenePlays.meditate],
+                        backgroundColor: [
+                            '#3b82f6',
+                            '#60a5fa',
+                            '#93c5fd'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#cbd5e1',
+                                font: {
+                                    family: 'Inter'
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Genre preference chart
+            const genreCtx = document.getElementById('genre-preference-chart').getContext('2d');
+            
+            // Calculate genre plays
+            const genrePlays = {};
+            
+            playHistory.forEach(item => {
+                if (!genrePlays[item.genre]) {
+                    genrePlays[item.genre] = 0;
+                }
+                genrePlays[item.genre]++;
+            });
+            
+            // Get genre names
+            const genreNames = {};
+            Object.values(scenes).forEach(scene => {
+                scene.genres.forEach(genre => {
+                    genreNames[genre.id] = genre.name;
+                });
+            });
+            
+            // Prepare data
+            const genreLabels = Object.keys(genrePlays).map(id => genreNames[id] || id);
+            const genreData = Object.values(genrePlays);
+            
+            new Chart(genreCtx, {
+                type: 'bar',
+                data: {
+                    labels: genreLabels,
+                    datasets: [{
+                        label: '播放次数',
+                        data: genreData,
+                        backgroundColor: '#3b82f6',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: '#cbd5e1'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#cbd5e1'
+                            },
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
